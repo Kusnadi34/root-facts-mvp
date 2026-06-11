@@ -1,4 +1,4 @@
-import { ... } from '@huggingface/transformers';
+import { pipeline, env } from '@xenova/transformers';
 
 class RootFactsService {
   constructor() {
