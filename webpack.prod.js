@@ -23,8 +23,6 @@ module.exports = merge(common, {
     new WorkboxWebpackPlugin.GenerateSW({
       swDest: "sw.js",
       maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-      globPatterns: ['**/*.{html,css,js,json,png,jpg,jpeg,bin}'],
-      globIgnores: ['**/node_modules/**'],
       runtimeCaching: [
         {
           urlPattern: /^https:\/\/api\./i,
