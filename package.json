@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
+    "@xenova/transformers": "^2.13.2",
     "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-backend-webgpu": "^4.22.0",
     "workbox-cacheable-response": "^7.3.0",
