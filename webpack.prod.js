@@ -25,9 +25,7 @@ module.exports = merge(common, {
       maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       skipWaiting: true,
       clientsClaim: true,
-      workbox: {
-        globPatterns: ['**/*.{js,css,html}'],
-        globDirectory: 'dist',
+      
       runtimeCaching: [
         {
           urlPattern: /^https:\/\/api\./i,
