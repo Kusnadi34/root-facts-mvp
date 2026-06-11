@@ -26,9 +26,7 @@ module.exports = merge(common, {
       skipWaiting: true,
       clientsClaim: true,
       
-      globPatterns: [
-        "**/*.{html,css,js,json,png,jpg,jpeg,bin}"
-      ],
+      
       
       runtimeCaching: [
         {
