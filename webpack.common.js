@@ -9,7 +9,7 @@ module.exports = {
   output: {
     filename: "[name].bundle.js",
     path: path.resolve(__dirname, "dist"),
-    clean: true, // Membersihkan folder dist sebelum build baru
+    clean: true,
   },
   module: {
     rules: [
@@ -37,7 +37,7 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       filename: "index.html",
-      template: path.resolve(__dirname, "src/templates/index.html"), // Sesuaikan jika letak index.html kamu berbeda
+      template: path.resolve(__dirname, "src/index.html"), // Sesuaikan jika letak index.html kamu berbeda
     }),
     new CopyWebpackPlugin({
       patterns: [
