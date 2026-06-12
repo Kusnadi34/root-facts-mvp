@@ -9,11 +9,12 @@ module.exports = {
   output: {
     filename: "[name].bundle.js",
     path: path.resolve(__dirname, "dist"),
+    clean: true, // Membersihkan folder dist sebelum build baru
   },
   module: {
     rules: [
       {
-        test: /\.(png|jpe?g|gif)$/i,
+        test: /\.(png|jpe?g|gif|svg)$/i,
         type: "asset/resource",
       },
       {
@@ -31,26 +32,24 @@ module.exports = {
         use: ["style-loader", "css-loader"],
       },
     ],
-    parser: {
-      javascript: {
-        importMeta: true,
-      },
-    },
   },
+  
   plugins: [
     new HtmlWebpackPlugin({
-      template: path.resolve(__dirname, "src/index.html"),
-      scriptLoading: "module",
-    })
-
+      filename: "index.html",
+      template: path.resolve(__dirname, "src/templates/index.html"), // Sesuaikan jika letak index.html kamu berbeda
+    }),
     new CopyWebpackPlugin({
       patterns: [
-        { from: path.resolve(__dirname, "src/public"), to: path.resolve(__dirname, "dist") },
-        { from: path.resolve(__dirname, "src/model"), to: path.resolve(__dirname, "dist/model") },
+        {
+          from: path.resolve(__dirname, "src/public/"),
+          to: path.resolve(__dirname, "dist/"),
+        },
+        {
+          from: path.resolve(__dirname, "src/model/"),
+          to: path.resolve(__dirname, "dist/model/"),
+        },
       ],
     }),
   ],
-  stats: {
-    warningsFilter: /import\.meta/,
-  },
 };
