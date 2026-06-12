@@ -30,6 +30,7 @@ module.exports = merge(common, {
       globPatterns: [
         "**/*.{html,css,js,json,png,jpg,jpeg,bin}"
       ],
+      globDirectory: path.resolve(__dirname, "dist"),
       
       runtimeCaching: [
         {
