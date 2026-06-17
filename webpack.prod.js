@@ -41,6 +41,21 @@ module.exports = merge(common, {
             },
           },
         },
+        
+        {
+          urlPattern: /\.(json|bin)$/,
+          handler: "CacheFirst",
+          options: {
+            cacheName: "model-cache",
+            expiration: {
+              maxEntries: 10,           
+              maxAgeSeconds: 60 * 60 * 24 * 30,
+            },
+            cacheableResponse: {
+              statuses: [0, 200],
+            },
+          },
+        },
       ],
     }),
   ],
