@@ -17,6 +17,7 @@ export default class HomePage {
     this.currentFps = 30;
     this.lastPredictTime = 0;
     this.lastDetectedLabel = '';
+    this.loopId = null; 
   }
   
   async render() {
@@ -30,83 +31,151 @@ export default class HomePage {
   }
   
   async afterRender() {
-    await this.cameraService.startCamera('media-video', 'media-canvas', document.getElementById('camera-select'));
-    const statusEl = document.getElementById('status-text');
-    statusEl.innerText = 'Loading model...';
-    await this.detectionService.loadModel('/model/model.json', '/model/metadata.json');
+    const cameraStarted = await this.cameraService.startCamera(
+      'media-video', 
+      'media-canvas', 
+      document.getElementById('camera-select')
+    );
     
-    statusEl.innerText = 'Loading AI facts...';
-    await this.factsService.loadModel();
-    statusEl.innerText = 'Ready';
+    if (!cameraStarted) {
+      const statusEl = document.getElementById('status-text');
+      if (statusEl) statusEl.innerText = '❌ Kamera tidak tersedia';
+      return;
+    }
+
+    
+    const statusEl = document.getElementById('status-text');
+    if (statusEl) statusEl.innerText = 'Loading model...';
+    
+    try {
+      await this.detectionService.loadModel('/model/model.json', '/model/metadata.json');
+    } catch (err) {
+      console.error('Gagal load model deteksi:', err);
+      if (statusEl) statusEl.innerText = '❌ Gagal load model';
+      return;
+    }
+
+    
+    if (statusEl) statusEl.innerText = 'Loading AI facts...';
+    try {
+      await this.factsService.loadModel();
+    } catch (err) {
+      console.error('Gagal load AI facts:', err);
+      if (statusEl) statusEl.innerText = '❌ Gagal load AI';
+      return;
+    }
+
+    if (statusEl) statusEl.innerText = '✅ Siap!';
+
+    
     const fpsSlider = document.getElementById('fps-slider');
     const fpsLabel = document.getElementById('fps-label');
-    fpsSlider.addEventListener('input', (e) => {
-      this.currentFps = parseInt(e.target.value);
-      fpsLabel.innerText = this.currentFps + ' FPS';
-      this.cameraService.setFPS(this.currentFps);
-    });
+    if (fpsSlider && fpsLabel) {
+      fpsSlider.addEventListener('input', (e) => {
+        this.currentFps = parseInt(e.target.value);
+        fpsLabel.innerText = this.currentFps + ' FPS';
+        this.cameraService.setFPS(this.currentFps);
+      });
+    }
+    
     
     const toneSelect = document.getElementById('tone-select');
-    toneSelect.addEventListener('change', (e) => {
-      this.factsService.setTone(e.target.value);
-    })
+    if (toneSelect) {
+      toneSelect.addEventListener('change', (e) => {
+        this.factsService.setTone(e.target.value);
+      });
+    }
     
     const copyBtn = document.getElementById('btn-copy');
     if (copyBtn) {
       copyBtn.addEventListener('click', () => {
-        const factText = document.getElementById('fun-fact-text').innerText;
-        copyToClipboard(factText);
-        alert('Facts copied!');
+        const factText = document.getElementById('fun-fact-text');
+        if (factText && factText.innerText && factText.innerText !== '-') {
+          copyToClipboard(factText.innerText);
+          alert('Fakta disalin!');
+        }
       });
     }
-    requestAnimationFrame(this.predictLoop.bind(this));
+
+    
+    this.loopId = requestAnimationFrame(this.predictLoop.bind(this));
   }
   
   async predictLoop(now) {
-    requestAnimationFrame(this.predictLoop.bind(this));
+    this.loopId = requestAnimationFrame(this.predictLoop.bind(this));
+    
+    
     if (!this.cameraService.isActive()) return;
+    
+    
     if (now - this.lastPredictTime < 1000 / this.currentFps) return;
     this.lastPredictTime = now;
     
     const video = document.getElementById('media-video');
     if (!video || video.readyState < 2) return;
     
+    
     const resultDiv = document.getElementById('state-result');
     const idleDiv = document.getElementById('state-idle');
     const loadingDiv = document.getElementById('state-loading');
     
-    hideElement(idleDiv);
-    showElement(loadingDiv);
+    
+    if (idleDiv) hideElement(idleDiv);
+    if (loadingDiv) showElement(loadingDiv);
     
     try {
       const detection = await this.detectionService.predict(video);
-      if (detection.isValid) {
-        // update UI hasil
-        setElementText(document.getElementById('detected-name'), detection.label);
-        setElementText(document.getElementById('detected-confidence'), detection.confidence + '%');
-        document.getElementById('confidence-fill').style.width = detection.confidence + '%';
+      
+      if (detection && detection.isValid) {
+        const nameEl = document.getElementById('detected-name');
+        const confEl = document.getElementById('detected-confidence');
+        const fillEl = document.getElementById('confidence-fill');
+        
+        if (nameEl) setElementText(nameEl, detection.label);
+        if (confEl) setElementText(confEl, detection.confidence + '%');
+        if (fillEl) fillEl.style.width = detection.confidence + '%';
         
         
         if (this.lastDetectedLabel !== detection.label) {
           this.lastDetectedLabel = detection.label;
+          
           const factLoading = document.getElementById('fun-fact-loading');
-          showElement(factLoading);
-          const factText = await this.factsService.generateFacts(detection.label);
-          setElementText(document.getElementById('fun-fact-text'), factText);
-          hideElement(factLoading);
+          const factTextEl = document.getElementById('fun-fact-text');
+          
+          if (factLoading) showElement(factLoading);
+          
+          try {
+            const fact = await this.factsService.generateFacts(detection.label);
+            if (factTextEl) setElementText(factTextEl, fact);
+          } catch (err) {
+            console.error('Gagal generate fakta:', err);
+            if (factTextEl) setElementText(factTextEl, 'Gagal generate fakta, coba lagi');
+          }
+          
+          if (factLoading) hideElement(factLoading);
         }
         
-        hideElement(loadingDiv);
-        showElement(resultDiv);
+        
+        if (loadingDiv) hideElement(loadingDiv);
+        if (resultDiv) showElement(resultDiv);
+        
       } else {
-        hideElement(resultDiv);
-        showElement(idleDiv);
-        hideElement(loadingDiv);
+        if (resultDiv) hideElement(resultDiv);
+        if (idleDiv) showElement(idleDiv);
+        if (loadingDiv) hideElement(loadingDiv);
       }
     } catch (err) {
-      console.error('prediction errors', err);
-      hideElement(loadingDiv);
-      showElement(idleDiv);
+      console.error('Error pas prediksi:', err);
+      if (loadingDiv) hideElement(loadingDiv);
+      if (idleDiv) showElement(idleDiv);
     }
+  }
+  
+  stopPrediction() {
+    if (this.loopId) {
+      cancelAnimationFrame(this.loopId);
+      this.loopId = null;
+    }
+    this.cameraService.stopCamera();
   }
 }
