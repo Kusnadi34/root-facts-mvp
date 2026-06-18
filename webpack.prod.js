@@ -20,8 +20,7 @@ module.exports = merge(common, {
     new MiniCssExtractPlugin({
       filename: "[name].[contenthash].css",
     }),
-    new WorkboxWebpackPlugin.InjectManifest({
-      swSrc: path.resolve(__dirname, "src/sw.js"),
+    new WorkboxWebpackPlugin.GenerateSW({
       swDest: "sw.js",
       maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       skipWaiting: true,
