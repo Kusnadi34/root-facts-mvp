@@ -21,12 +21,45 @@ module.exports = merge(common, {
     new MiniCssExtractPlugin({
       filename: "[name].[contenthash].css",
     }),
-    new WorkboxWebpackPlugin.InjectManifest({
-      swSrc: path.resolve(__dirname, "src/sw.js"),
+    new WorkboxWebpackPlugin.GenerateSW({
       swDest: "sw.js",
-      maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+      maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, 
+      skipWaiting: true,
+      clientsClaim: true,
+      
+      globDirectory: path.resolve(__dirname, "dist"),
       globPatterns: [
-        "**/*.{html,css,js,json,png,jpg,jpeg,bin}"
+        "**/*.{html,css,js,json,png,jpg,jpeg,bin}" 
+      ],
+      runtimeCaching: [
+        {
+          urlPattern: /^https:\/\/api\./i,
+          handler: "NetworkFirst",
+          options: {
+            cacheName: "api-cache",
+            expiration: {
+              maxEntries: 50,
+              maxAgeSeconds: 60 * 60 * 24,
+            },
+            cacheableResponse: {
+              statuses: [0, 200],
+            },
+          },
+        },
+        {
+          urlPattern: /\.(json|bin)$/,
+          handler: "CacheFirst",
+          options: {
+            cacheName: "model-cache",
+            expiration: {
+              maxEntries: 10,
+              maxAgeSeconds: 60 * 60 * 24 * 30,
+            },
+            cacheableResponse: {
+              statuses: [0, 200],
+            },
+          },
+        },
       ],
     }),
   ],
