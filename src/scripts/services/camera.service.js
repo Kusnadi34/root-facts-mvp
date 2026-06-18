@@ -7,12 +7,35 @@ class CameraService {
     this.fpsInterval = 1000 / 30;
     this.lastFrameTime = 0;
     this.isCameraReady = false;
+    this.errorEl = null;
   }
 
   initializeElements(videoId, canvasId) {
     this.video = document.getElementById(videoId);
     this.canvas = document.getElementById(canvasId);
+    this.errorEl = document.getElementById('status-text');
     console.log('video element', this.video);
+  }
+
+  // Tambahan: method untuk menampilkan error di UI
+  showCameraError(message) {
+    if (this.errorEl) {
+      this.errorEl.innerText = '❌ ' + message;
+    }
+    const dot = document.getElementById('status-dot');
+    if (dot) dot.className = 'status-dot';
+    const placeholder = document.getElementById('camera-placeholder');
+    if (placeholder) placeholder.classList.remove('hidden');
+  }
+
+  hideCameraError() {
+    if (this.errorEl) {
+      this.errorEl.innerText = '✅ Siap!';
+    }
+    const dot = document.getElementById('status-dot');
+    if (dot) dot.className = 'status-dot active';
+    const placeholder = document.getElementById('camera-placeholder');
+    if (placeholder) placeholder.classList.add('hidden');
   }
 
   async loadCameras(cameraSelect) {
@@ -47,20 +70,19 @@ class CameraService {
     this.initializeElements(videoId, canvasId);
     this.isCameraReady = false;
 
-    
     if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-      const errorMsg = 'Akses kamera membutuhkan HTTPS. Buka ulang dengan https://';
-      console.error(errorMsg);
-      this.showCameraError(errorMsg);
+      const msg = 'Akses kamera membutuhkan HTTPS. Buka ulang dengan https://';
+      console.error(msg);
+      this.showCameraError(msg);
       return false;
     }
 
-    let constraints = { 
-      video: { 
+    let constraints = {
+      video: {
         facingMode: 'environment',
         width: { ideal: 640 },
         height: { ideal: 480 }
-      } 
+      }
     };
 
     if (cameraSelect && cameraSelect.value && cameraSelect.value !== '') {
@@ -86,7 +108,6 @@ class CameraService {
     } catch (err) {
       console.error('Gagal mengakses kamera:', err);
       let userMessage = 'Tidak dapat mengakses kamera. ';
-      
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         userMessage += 'Izin kamera ditolak. Berikan izin di pengaturan browser.';
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
@@ -106,29 +127,14 @@ class CameraService {
           return true;
         } catch (fallbackErr) {
           console.error('Fallback gagal:', fallbackErr);
-          userMessage = 'Gagal mengakses kamera bahkan dengan mode default.';
+          this.showCameraError(userMessage + ' Fallback juga gagal.');
+          return false;
         }
       } else {
-        userMessage += `Error: ${err.message || 'Unknown error'}`;
+        userMessage += 'Terjadi kesalahan tidak dikenal: ' + err.message;
       }
-      
       this.showCameraError(userMessage);
       return false;
-    }
-  }
-
-  showCameraError(message) {
-    const errorEl = document.getElementById('camera-error');
-    if (errorEl) {
-      errorEl.textContent = message;
-      errorEl.style.display = 'block';
-    }
-  }
-
-  hideCameraError() {
-    const errorEl = document.getElementById('camera-error');
-    if (errorEl) {
-      errorEl.style.display = 'none';
     }
   }
 
@@ -137,17 +143,24 @@ class CameraService {
       this.stream.getTracks().forEach(track => track.stop());
       this.stream = null;
     }
-    if (this.video) this.video.srcObject = null;
+    if (this.video) {
+      this.video.srcObject = null;
+    }
     this.isCameraReady = false;
+    const dot = document.getElementById('status-dot');
+    if (dot) dot.className = 'status-dot';
+    const placeholder = document.getElementById('camera-placeholder');
+    if (placeholder) placeholder.classList.remove('hidden');
+    console.log('Kamera dihentikan');
+  }
+
+  isActive() {
+    return this.isCameraReady && this.stream !== null && this.stream.active;
   }
 
   setFPS(fps) {
     this.currentFps = fps;
     this.fpsInterval = 1000 / fps;
-  }
-
-  isActive() {
-    return this.isCameraReady && this.stream !== null && this.video && !this.video.paused;
   }
 }
 
