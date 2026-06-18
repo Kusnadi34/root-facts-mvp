@@ -34,7 +34,7 @@ export default class HomePage {
   }
 
   async afterRender() {
-    // 1. Start camera
+    
     const cameraStarted = await this.cameraService.startCamera(
       'media-video',
       'media-canvas',
@@ -50,7 +50,7 @@ export default class HomePage {
     const statusEl = document.getElementById('status-text');
     if (statusEl) statusEl.innerText = 'Loading model...';
 
-    // 2. Load detection model
+    
     try {
       await this.detectionService.loadModel('model/model.json', 'model/metadata.json');
     } catch (err) {
@@ -61,7 +61,7 @@ export default class HomePage {
 
     if (statusEl) statusEl.innerText = 'Loading AI facts...';
 
-    // 3. Load AI facts model
+    
     try {
       await this.factsService.loadModel();
     } catch (err) {
@@ -72,7 +72,7 @@ export default class HomePage {
 
     if (statusEl) statusEl.innerText = '✅ Siap!';
 
-    // 4. Setup FPS slider
+    
     const fpsSlider = document.getElementById('fps-slider');
     const fpsLabel = document.getElementById('fps-label');
     if (fpsSlider && fpsLabel) {
@@ -83,7 +83,7 @@ export default class HomePage {
       });
     }
 
-    // 5. Setup tone selector
+    
     const toneSelect = document.getElementById('tone-select');
     if (toneSelect) {
       toneSelect.addEventListener('change', (e) => {
@@ -91,7 +91,7 @@ export default class HomePage {
       });
     }
 
-    // 6. Setup copy button
+    
     const copyBtn = document.getElementById('btn-copy');
     if (copyBtn) {
       copyBtn.addEventListener('click', () => {
@@ -103,7 +103,7 @@ export default class HomePage {
       });
     }
 
-    // 7. Setup capture button
+    
     const captureBtn = document.getElementById('btn-capture');
     if (captureBtn) {
       captureBtn.addEventListener('click', () => {
@@ -111,7 +111,7 @@ export default class HomePage {
       });
     }
 
-    // 8. Start prediction loop
+    
     this.loopId = requestAnimationFrame(this.predictLoop.bind(this));
   }
 
@@ -145,7 +145,7 @@ export default class HomePage {
         if (confEl) setElementText(confEl, detection.confidence + '%');
         if (fillEl) fillEl.style.width = detection.confidence + '%';
 
-        // Jika label berubah, generate fakta baru
+        
         if (this.lastDetectedLabel !== detection.label) {
           this.lastDetectedLabel = detection.label;
           const factLoading = document.getElementById('fun-fact-loading');
