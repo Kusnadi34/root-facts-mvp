@@ -3,7 +3,6 @@ const common = require("./webpack.common.js");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const WorkboxWebpackPlugin = require("workbox-webpack-plugin");
-const path = require("path");
 
 module.exports = merge(common, {
   mode: "production",
@@ -23,14 +22,10 @@ module.exports = merge(common, {
     }),
     new WorkboxWebpackPlugin.GenerateSW({
       swDest: "sw.js",
-      maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, 
+      maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB agar weights.bin masuk
       skipWaiting: true,
       clientsClaim: true,
       
-      globDirectory: path.resolve(__dirname, "dist"),
-      globPatterns: [
-        "**/*.{html,css,js,json,png,jpg,jpeg,bin}" 
-      ],
       runtimeCaching: [
         {
           urlPattern: /^https:\/\/api\./i,
