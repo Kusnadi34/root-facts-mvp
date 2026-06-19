@@ -42,6 +42,7 @@ module.exports = {
       template: path.resolve(__dirname, "src/index.html"),
       scriptLoading: "module",
     }),
+    /**
     new CopyWebpackPlugin({
       patterns: [
         {
@@ -59,6 +60,7 @@ module.exports = {
         },
       ],
     }),
+    **/
   ],
   stats: {
     warningsFilter: /import\.meta/,
