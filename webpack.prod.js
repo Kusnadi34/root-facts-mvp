@@ -1,66 +1,69 @@
-const { merge } = require("webpack-merge");
-const common = require("./webpack.common.js");
-const { CleanWebpackPlugin } = require("clean-webpack-plugin");
-const MiniCssExtractPlugin = require("mini-css-extract-plugin");
-const WorkboxWebpackPlugin = require("workbox-webpack-plugin");
-const CopyWebpackPlugin = require('copy-webpack-plugin');
 const path = require('path');
+const { merge } = require('webpack-merge');
+const common = require('./webpack.common.js');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const WorkboxPlugin = require('workbox-webpack-plugin');
 
 module.exports = merge(common, {
-  mode: "production",
-  devtool: false,
-  module: {
-    rules: [
-      {
-        test: /\.css$/i,
-        use: [MiniCssExtractPlugin.loader, "css-loader"],
-      },
-    ],
-  },
+  mode: 'production',
+  devtool: 'source-map',
   plugins: [
-    new CleanWebpackPlugin(),
-    new MiniCssExtractPlugin({
-      filename: "[name].[contenthash].css",
+    
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: path.resolve(__dirname, 'src/public'),
+          to: path.resolve(__dirname, 'dist'),
+          globOptions: {
+            ignore: ['**/.DS_Store'],
+          },
+        },
+        {
+          from: path.resolve(__dirname, 'src/model'),
+          to: path.resolve(__dirname, 'dist/model'),
+          globOptions: {
+            ignore: ['**/.DS_Store'],
+          },
+          noErrorOnMissing: true, 
+        },
+      ],
     }),
-    new WorkboxWebpackPlugin.GenerateSW({
-      swDest: "sw.js",
-      maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB agar weights.bin masuk
-      skipWaiting: true,
+
+    
+    new WorkboxPlugin.GenerateSW({
       clientsClaim: true,
-      
+      skipWaiting: true,
       runtimeCaching: [
         {
-          urlPattern: /^https:\/\/api\./i,
-          handler: "NetworkFirst",
+          urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/,
+          handler: 'CacheFirst',
           options: {
-            cacheName: "api-cache",
+            cacheName: 'images',
             expiration: {
               maxEntries: 50,
-              maxAgeSeconds: 60 * 60 * 24,
-            },
-            cacheableResponse: {
-              statuses: [0, 200],
+              maxAgeSeconds: 30 * 24 * 60 * 60,
             },
           },
         },
         {
-          urlPattern: /\.(json|bin)$/,
-          handler: "CacheFirst",
+          urlPattern: /^https:\/\/unpkg\.com\/lucide/,
+          handler: 'StaleWhileRevalidate',
           options: {
-            cacheName: "model-cache",
-            expiration: {
-              maxEntries: 10,
-              maxAgeSeconds: 60 * 60 * 24 * 30,
-            },
-            cacheableResponse: {
-              statuses: [0, 200],
-            },
+            cacheName: 'lucide-icons',
+          },
+        },
+        {
+          urlPattern: /^https:\/\/fonts\.googleapis\.com/,
+          handler: 'StaleWhileRevalidate',
+          options: {
+            cacheName: 'google-fonts',
           },
         },
       ],
     }),
   ],
 });
+
 
 
 /**
