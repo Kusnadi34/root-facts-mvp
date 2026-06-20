@@ -25,85 +25,6 @@ module.exports = merge(common, {
           },
           noErrorOnMissing: true,
         },
-        // Copy sw.js ke dist
-        {
-          from: path.resolve(__dirname, 'sw.js'),
-          to: path.resolve(__dirname, 'dist/sw.js'),
-        },
-        // Copy STUDENT.txt ke dist
-        {
-          from: path.resolve(__dirname, 'STUDENT.txt'),
-          to: path.resolve(__dirname, 'dist/STUDENT.txt'),
-        },
-      ],
-    }),
-    new WorkboxPlugin.GenerateSW({
-      clientsClaim: true,
-      skipWaiting: true,
-      globPatterns: [
-        '**/*.{html,css,js,ico,png,svg,json,txt}',
-        'model/*.{json,bin}',
-      ],
-      runtimeCaching: [
-        {
-          urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/,
-          handler: 'CacheFirst',
-          options: {
-            cacheName: 'images',
-            expiration: {
-              maxEntries: 50,
-              maxAgeSeconds: 30 * 24 * 60 * 60,
-            },
-          },
-        },
-        {
-          urlPattern: /^https:\/\/unpkg\.com\/lucide/,
-          handler: 'StaleWhileRevalidate',
-          options: {
-            cacheName: 'lucide-icons',
-          },
-        },
-        {
-          urlPattern: /^https:\/\/fonts\.googleapis\.com/,
-          handler: 'StaleWhileRevalidate',
-          options: {
-            cacheName: 'google-fonts',
-          },
-        },
-      ],
-    }),
-  ],
-});
-
-
-/**
-const path = require('path');
-const { merge } = require('webpack-merge');
-const common = require('./webpack.common.js');
-const CopyWebpackPlugin = require('copy-webpack-plugin');
-const WorkboxPlugin = require('workbox-webpack-plugin');
-
-module.exports = merge(common, {
-  mode: 'production',
-  devtool: 'source-map',
-  plugins: [
-    new CopyWebpackPlugin({
-      patterns: [
-        {
-          from: path.resolve(__dirname, 'src/public'),
-          to: path.resolve(__dirname, 'dist'),
-          globOptions: {
-            ignore: ['**/.DS_Store'],
-          },
-        },
-        {
-          from: path.resolve(__dirname, 'src/model'),
-          to: path.resolve(__dirname, 'dist/model'),
-          globOptions: {
-            ignore: ['**/.DS_Store'],
-          },
-          noErrorOnMissing: true,
-        },
       ],
     }),
     new WorkboxPlugin.GenerateSW({
@@ -153,4 +74,3 @@ module.exports = merge(common, {
     }),
   ],
 });
-**/
