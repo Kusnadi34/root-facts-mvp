@@ -5,34 +5,38 @@ class DetectionService {
   constructor() {
     this.model = null;
     this.labels = [];
-    this.config = null;
   }
 
   async loadModel(modelPath = 'model/model.json', metadataPath = 'model/metadata.json') {
+    
+    const progressContainer = document.getElementById('model-progress-container');
+    const progressBar = document.getElementById('model-progress');
+    const progressText = document.getElementById('model-progress-text');
+    if (progressContainer) progressContainer.style.display = 'block';
+
     
     let backend = 'webgl';
     if (navigator.gpu) {
       try {
         await tf.setBackend('webgpu');
         backend = 'webgpu';
-        console.log('✅ webGPU active');
-      } catch (e) {
-        console.warn('webGPU failed, fallback to webGL', e);
+        console.log('✅ WebGPU aktif');
+      } catch (err) {
+        console.warn('WebGPU gagal, pake WebGL', err);
         await tf.setBackend('webgl');
       }
     } else {
       await tf.setBackend('webgl');
     }
-
     await tf.ready();
 
     
     this.model = await tf.loadLayersModel(modelPath, {
       onProgress: (fraction) => {
         const percent = Math.round(fraction * 100);
-        const progressEl = document.getElementById('model-progress');
-        if (progressEl) progressEl.style.width = percent + '%';
-        console.log('loading model', percent + '%');
+        if (progressBar) progressBar.style.width = percent + '%';
+        if (progressText) progressText.innerText = `Memuat model ${percent}%`;
+        console.log(`Loading model ${percent}%`);
       }
     });
 
@@ -40,30 +44,35 @@ class DetectionService {
     const resp = await fetch(metadataPath);
     const meta = await resp.json();
     this.labels = meta.labels || [];
+
+    
+    if (progressContainer) {
+      setTimeout(() => {
+        progressContainer.style.display = 'none';
+      }, 500);
+    }
     return true;
   }
 
   async predict(imageElement) {
-    if (!this.model) throw new Error('Model not loaded yet');
+    if (!this.model) throw new Error('Model belum dimuat');
 
-    const result = tf.tidy(() => {
-      let tensor = tf.browser.fromPixels(imageElement);
-      let resized = tf.image.resizeBilinear(tensor, [224, 224]);
-      let normalized = resized.div(255.0);
-      let batched = normalized.expandDims(0);
-      let predictions = this.model.predict(batched);
-      return predictions.arraySync();
+    
+    return tf.tidy(() => {
+      const tensor = tf.browser.fromPixels(imageElement);
+      const resized = tf.image.resizeBilinear(tensor, [224, 224]);
+      const normalized = resized.div(255.0);
+      const batched = normalized.expandDims(0);
+      const predictions = this.model.predict(batched);
+      const probs = predictions.arraySync()[0];
+      const maxIndex = probs.indexOf(Math.max(...probs));
+      const confidence = Math.round(probs[maxIndex] * 100);
+      return {
+        label: this.labels[maxIndex] || 'Gak dikenal',
+        confidence: confidence,
+        isValid: confidence >= 70
+      };
     });
-
-    const probs = result[0];
-    const maxIndex = probs.indexOf(Math.max(...probs));
-    const confidence = Math.round(probs[maxIndex] * 100);
-
-    return {
-      label: this.labels[maxIndex] || 'Tidak dikenal',
-      confidence: confidence,
-      isValid: confidence >= 70
-    };
   }
 }
 
