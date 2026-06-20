@@ -26,7 +26,7 @@ class DetectionService {
     await tf.ready();
 
     
-    this.model = await tf.loadGraphModel(modelPath, {
+    this.model = await tf.loadLayersModel(modelPath, {
       onProgress: (fraction) => {
         const percent = Math.round(fraction * 100);
         const progressEl = document.getElementById('model-progress');
