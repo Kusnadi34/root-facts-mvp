@@ -1,4 +1,5 @@
 import * as tf from '@tensorflow/tfjs';
+import '@tensorflow/tfjs-backend-webgpu';
 
 class DetectionService {
   constructor() {
