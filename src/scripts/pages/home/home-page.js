@@ -37,18 +37,18 @@ export default class HomePage {
     const statusEl = document.getElementById('status-text');
     const dotEl = document.getElementById('status-dot');
 
-    // Cek koneksi offline saat pertama load
+    
     if (!navigator.onLine && this.isFirstLoad) {
       if (statusEl) statusEl.innerText = '⚠️ Offline - tidak bisa scan';
       if (dotEl) dotEl.className = 'status-dot';
-      // Matikan kamera kalau nyala
+      
       this.cameraService.stopCamera();
       this.isFirstLoad = false;
       return;
     }
     this.isFirstLoad = false;
 
-    // Load model deteksi + AI (cuma sekali)
+    
     try {
       if (statusEl) statusEl.innerText = '⏳ Muat model...';
       if (dotEl) dotEl.className = 'status-dot active';
@@ -65,7 +65,7 @@ export default class HomePage {
       return;
     }
 
-    // Setup FPS
+    
     const fpsSlider = document.getElementById('fps-slider');
     const fpsLabel = document.getElementById('fps-label');
     if (fpsSlider && fpsLabel) {
@@ -76,7 +76,7 @@ export default class HomePage {
       });
     }
 
-    // Setup tone
+    
     const toneSelect = document.getElementById('tone-select');
     if (toneSelect) {
       toneSelect.addEventListener('change', (e) => {
@@ -84,7 +84,7 @@ export default class HomePage {
       });
     }
 
-    // Tombol copy
+    
     const copyBtn = document.getElementById('btn-copy');
     if (copyBtn) {
       copyBtn.addEventListener('click', () => {
@@ -96,7 +96,7 @@ export default class HomePage {
       });
     }
 
-    // Tombol scan - utama
+    
     const captureBtn = document.getElementById('btn-capture');
     if (captureBtn) {
       captureBtn.addEventListener('click', () => {
@@ -104,12 +104,12 @@ export default class HomePage {
       });
     }
 
-    // Mulai dengan kamera menyala dan loop prediksi
+    
     await this.startCameraAndScan();
   }
 
   async startCameraAndScan() {
-    // Nyalakan kamera
+    
     const started = await this.cameraService.startCamera(
       'media-video',
       'media-canvas',
@@ -122,7 +122,7 @@ export default class HomePage {
     }
 
     this.isScanning = true;
-    // Mulai loop prediksi
+    
     if (this.loopId) cancelAnimationFrame(this.loopId);
     this.loopId = requestAnimationFrame(this.predictLoop.bind(this));
   }
@@ -133,7 +133,7 @@ export default class HomePage {
 
     if (!this.cameraService.isActive()) return;
 
-    // FPS limit
+    
     if (!this._lastPredictTime) this._lastPredictTime = now;
     if (now - this._lastPredictTime < 1000 / this.currentFps) return;
     this._lastPredictTime = now;
@@ -160,7 +160,7 @@ export default class HomePage {
         if (confEl) setElementText(confEl, detection.confidence + '%');
         if (fillEl) fillEl.style.width = detection.confidence + '%';
 
-        // Cegah duplicate generate untuk label yang sama
+        
         if (this.lastDetectedLabel !== detection.label) {
           this.lastDetectedLabel = detection.label;
           const factLoading = document.getElementById('fun-fact-loading');
@@ -169,7 +169,7 @@ export default class HomePage {
           if (factLoading) showElement(factLoading);
 
           try {
-            // Prompt dalam bahasa Inggris
+            
             const fact = await this.factsService.generateFacts(detection.label);
             if (factTextEl) setElementText(factTextEl, fact);
           } catch (err) {
@@ -179,14 +179,14 @@ export default class HomePage {
 
           if (factLoading) hideElement(factLoading);
 
-          // === KRUSIAL: setelah fakta muncul, matikan kamera ===
+          
           this.stopCameraAndClearMemory();
         }
 
         if (loadingDiv) hideElement(loadingDiv);
         if (resultDiv) showElement(resultDiv);
       } else {
-        // Belum ada deteksi valid
+        
         if (resultDiv) hideElement(resultDiv);
         if (idleDiv) showElement(idleDiv);
         if (loadingDiv) hideElement(loadingDiv);
@@ -199,31 +199,29 @@ export default class HomePage {
   }
 
   stopCameraAndClearMemory() {
-    // Hentikan loop prediksi
+    
     this.isScanning = false;
     if (this.loopId) {
       cancelAnimationFrame(this.loopId);
       this.loopId = null;
     }
 
-    // Matikan kamera (UI dan device)
+    
     this.cameraService.stopCamera();
 
-    // Bersihkan memory TensorFlow (di service sudah pakai tf.tidy, tapi kita panggil manual juga)
-    // Ini akan membersihkan sisa-sisa tensor yang mungkin tertinggal
+    
     if (window.tf) {
-      // tf.tidy otomatis membersihkan, tapi kita bisa panggil gc secara paksa (tidak disarankan)
-      // Biarkan garbage collector JS bekerja
+      
     }
 
-    // Reset status UI
+    
     const statusEl = document.getElementById('status-text');
     if (statusEl) statusEl.innerText = '⏸️ Scan selesai';
 
     const dotEl = document.getElementById('status-dot');
     if (dotEl) dotEl.className = 'status-dot';
 
-    // Tampilkan tombol scan aktif
+    
     const captureBtn = document.getElementById('btn-capture');
     if (captureBtn) {
       captureBtn.classList.remove('scanning');
@@ -232,19 +230,19 @@ export default class HomePage {
   }
 
   async handleScanButton() {
-    // Jika sedang scanning, abaikan
+    
     if (this.isScanning) return;
 
-    // Reset label terakhir agar bisa generate ulang
+    
     this.lastDetectedLabel = '';
 
-    // Bersihkan memory dengan memanggil tf.tidy (jika ada)
+    
     if (window.tf) {
-      // Lakukan tidy kosong untuk memicu cleanup
+      
       window.tf.tidy(() => {});
     }
 
-    // Reset UI hasil
+    
     const resultDiv = document.getElementById('state-result');
     const idleDiv = document.getElementById('state-idle');
     const loadingDiv = document.getElementById('state-loading');
@@ -252,14 +250,14 @@ export default class HomePage {
     if (idleDiv) showElement(idleDiv);
     if (loadingDiv) hideElement(loadingDiv);
 
-    // Reset teks fakta
+    
     const factTextEl = document.getElementById('fun-fact-text');
     if (factTextEl) setElementText(factTextEl, 'Memindai...');
 
-    // Nyalakan kamera dan scan ulang
+    
     await this.startCameraAndScan();
 
-    // Update tombol
+    
     const captureBtn = document.getElementById('btn-capture');
     if (captureBtn) {
       captureBtn.classList.add('scanning');
@@ -267,7 +265,7 @@ export default class HomePage {
     }
   }
 
-  // Dipanggil saat halaman di-unload
+  
   destroy() {
     this.stopCameraAndClearMemory();
     this.cameraService.stopCamera();
