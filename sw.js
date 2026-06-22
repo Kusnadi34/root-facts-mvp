@@ -1,4 +1,5 @@
-const CACHE_NAME = 'rootfacts-cache-v3';
+const CACHE_NAME = 'rootfacts-cache-v4';
+
 const ASSETS_TO_PRECACHE = [
   '/',
   '/index.html',
@@ -7,6 +8,8 @@ const ASSETS_TO_PRECACHE = [
   '/model/model.json',
   '/model/weights.bin',
   '/model/metadata.json',
+  // File hasil build Webpack (sesuai entry name: app)
+  '/app.bundle.js',
 ];
 
 self.addEventListener('install', (event) => {
@@ -14,7 +17,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('[SW] Precaching');
+        console.log('[SW] Precaching assets');
         return cache.addAll(ASSETS_TO_PRECACHE);
       })
       .then(() => self.skipWaiting())
@@ -39,9 +42,9 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-   
-  if (event.request.url.includes('googleapis') || event.request.url.includes('unpkg')) {
-    
+  // Abaikan request ke eksternal (biar tidak error offline)
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) {
     return;
   }
 
@@ -54,12 +57,10 @@ self.addEventListener('fetch', (event) => {
         return fetch(event.request);
       })
       .catch(() => {
-        
-        return new Response('Offline', { status: 503 });
+        return new Response('Offline - konten tidak tersedia', { status: 503 });
       })
   );
 });
-
 
 
 /**
