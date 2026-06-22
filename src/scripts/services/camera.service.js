@@ -65,19 +65,19 @@ class CameraService {
   }
 
   async startCamera(videoId, canvasId, cameraSelect) {
-    // Inisialisasi elemen tiap kali start (agar fresh)
+    
     this.initializeElements(videoId, canvasId);
     this.isCameraReady = false;
 
-    // Jika sebelumnya sudah ada stream, matikan dulu
+    
     this.stopCamera();
 
-    // Pastikan video element terlihat
+    
     if (this.video) {
       this.video.style.display = 'block';
     }
 
-    // Cek HTTPS
+    
     if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
       this.showCameraError('HTTPS diperlukan');
       return false;
@@ -127,14 +127,14 @@ class CameraService {
   }
 
   stopCamera() {
-    // Matikan semua track
+    
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop());
       this.stream = null;
     }
     if (this.video) {
       this.video.srcObject = null;
-      // Sembunyikan video agar tidak menampilkan frame terakhir
+      
       this.video.style.display = 'none';
     }
     this.isCameraReady = false;
