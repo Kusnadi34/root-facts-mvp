@@ -8,13 +8,13 @@ class DetectionService {
   }
 
   async loadModel(modelPath = 'model/model.json', metadataPath = 'model/metadata.json') {
-    // Tampilkan progress bar
+    
     const progressContainer = document.getElementById('model-progress-container');
     const progressBar = document.getElementById('model-progress');
     const progressText = document.getElementById('model-progress-text');
     if (progressContainer) progressContainer.style.display = 'block';
 
-    // Pilih backend: WebGPU atau WebGL
+    
     let backend = 'webgl';
     if (navigator.gpu) {
       try {
@@ -30,7 +30,7 @@ class DetectionService {
     }
     await tf.ready();
 
-    // Load model dengan progress
+    
     this.model = await tf.loadLayersModel(modelPath, {
       onProgress: (fraction) => {
         const percent = Math.round(fraction * 100);
@@ -40,12 +40,12 @@ class DetectionService {
       }
     });
 
-    // Ambil metadata
+    
     const resp = await fetch(metadataPath);
     const meta = await resp.json();
     this.labels = meta.labels || [];
 
-    // Sembunyiin progress
+    
     if (progressContainer) {
       setTimeout(() => {
         progressContainer.style.display = 'none';
@@ -57,7 +57,7 @@ class DetectionService {
   async predict(imageElement) {
     if (!this.model) throw new Error('Model belum dimuat');
 
-    // Gunakan tf.tidy agar memory otomatis dibersihkan
+    
     return tf.tidy(() => {
       const tensor = tf.browser.fromPixels(imageElement);
       const resized = tf.image.resizeBilinear(tensor, [224, 224]);
