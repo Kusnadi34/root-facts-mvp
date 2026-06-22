@@ -18,11 +18,11 @@ export default class HomePage {
     this.cameraService = new CameraService();
     this.detectionService = new DetectionService();
     this.factsService = new RootFactsService();
-    this.isScanning = false;
+    this.isScanning = false;           // flag untuk cegah scan ganda
     this.currentFps = 30;
+    this.lastPredictTime = 0;
     this.lastDetectedLabel = '';
     this.loopId = null;
-    this.isFirstLoad = true;
   }
 
   async render() {
@@ -34,38 +34,43 @@ export default class HomePage {
   }
 
   async afterRender() {
+    // 1. Start camera
+    const cameraStarted = await this.cameraService.startCamera(
+      'media-video',
+      'media-canvas',
+      document.getElementById('camera-select')
+    );
+
+    if (!cameraStarted) {
+      const statusEl = document.getElementById('status-text');
+      if (statusEl) statusEl.innerText = '❌ Kamera tidak tersedia';
+      return;
+    }
+
     const statusEl = document.getElementById('status-text');
-    const dotEl = document.getElementById('status-dot');
+    if (statusEl) statusEl.innerText = 'Loading model...';
 
-    
-    if (!navigator.onLine && this.isFirstLoad) {
-      if (statusEl) statusEl.innerText = '⚠️ Offline - tidak bisa scan';
-      if (dotEl) dotEl.className = 'status-dot';
-      
-      this.cameraService.stopCamera();
-      this.isFirstLoad = false;
-      return;
-    }
-    this.isFirstLoad = false;
-
-    
     try {
-      if (statusEl) statusEl.innerText = '⏳ Muat model...';
-      if (dotEl) dotEl.className = 'status-dot active';
-
       await this.detectionService.loadModel('model/model.json', 'model/metadata.json');
-
-      if (statusEl) statusEl.innerText = '⏳ Muat AI...';
-      await this.factsService.loadModel();
-
-      if (statusEl) statusEl.innerText = '✅ Siap!';
     } catch (err) {
-      console.error('Gagal load:', err);
-      if (statusEl) statusEl.innerText = '❌ Gagal load';
+      console.error('Gagal load model deteksi:', err);
+      if (statusEl) statusEl.innerText = '❌ Gagal load model';
       return;
     }
 
-    
+    if (statusEl) statusEl.innerText = 'Loading AI facts...';
+
+    try {
+      await this.factsService.loadModel();
+    } catch (err) {
+      console.error('Gagal load AI facts:', err);
+      if (statusEl) statusEl.innerText = '❌ Gagal load AI';
+      return;
+    }
+
+    if (statusEl) statusEl.innerText = '✅ Siap!';
+
+    // Setup FPS
     const fpsSlider = document.getElementById('fps-slider');
     const fpsLabel = document.getElementById('fps-label');
     if (fpsSlider && fpsLabel) {
@@ -76,7 +81,7 @@ export default class HomePage {
       });
     }
 
-    
+    // Setup tone
     const toneSelect = document.getElementById('tone-select');
     if (toneSelect) {
       toneSelect.addEventListener('change', (e) => {
@@ -84,7 +89,7 @@ export default class HomePage {
       });
     }
 
-    
+    // Copy button
     const copyBtn = document.getElementById('btn-copy');
     if (copyBtn) {
       copyBtn.addEventListener('click', () => {
@@ -96,7 +101,7 @@ export default class HomePage {
       });
     }
 
-    
+    // Tombol scan -> panggil handleScanButton
     const captureBtn = document.getElementById('btn-capture');
     if (captureBtn) {
       captureBtn.addEventListener('click', () => {
@@ -104,39 +109,19 @@ export default class HomePage {
       });
     }
 
-    
-    await this.startCameraAndScan();
-  }
-
-  async startCameraAndScan() {
-    
-    const started = await this.cameraService.startCamera(
-      'media-video',
-      'media-canvas',
-      document.getElementById('camera-select')
-    );
-    if (!started) {
-      const statusEl = document.getElementById('status-text');
-      if (statusEl) statusEl.innerText = '❌ Kamera error';
-      return;
-    }
-
+    // Mulai loop prediksi (kamera sudah nyala)
     this.isScanning = true;
-    
-    if (this.loopId) cancelAnimationFrame(this.loopId);
     this.loopId = requestAnimationFrame(this.predictLoop.bind(this));
   }
 
   async predictLoop(now) {
-    if (!this.isScanning) return;
     this.loopId = requestAnimationFrame(this.predictLoop.bind(this));
 
+    if (!this.isScanning) return;               // jika scan dihentikan, keluar
     if (!this.cameraService.isActive()) return;
 
-    
-    if (!this._lastPredictTime) this._lastPredictTime = now;
-    if (now - this._lastPredictTime < 1000 / this.currentFps) return;
-    this._lastPredictTime = now;
+    if (now - this.lastPredictTime < 1000 / this.currentFps) return;
+    this.lastPredictTime = now;
 
     const video = document.getElementById('media-video');
     if (!video || video.readyState < 2) return;
@@ -160,16 +145,16 @@ export default class HomePage {
         if (confEl) setElementText(confEl, detection.confidence + '%');
         if (fillEl) fillEl.style.width = detection.confidence + '%';
 
-        
+        // Generate fakta hanya jika label berbeda
         if (this.lastDetectedLabel !== detection.label) {
           this.lastDetectedLabel = detection.label;
+
           const factLoading = document.getElementById('fun-fact-loading');
           const factTextEl = document.getElementById('fun-fact-text');
 
           if (factLoading) showElement(factLoading);
 
           try {
-            
             const fact = await this.factsService.generateFacts(detection.label);
             if (factTextEl) setElementText(factTextEl, fact);
           } catch (err) {
@@ -179,49 +164,46 @@ export default class HomePage {
 
           if (factLoading) hideElement(factLoading);
 
-          
+          // 🔥 MATIKAN KAMERA SETELAH FAKTA MUNCUL (pindah ke sini)
           this.stopCameraAndClearMemory();
         }
 
         if (loadingDiv) hideElement(loadingDiv);
         if (resultDiv) showElement(resultDiv);
       } else {
-        
+        // Belum ada deteksi
         if (resultDiv) hideElement(resultDiv);
         if (idleDiv) showElement(idleDiv);
         if (loadingDiv) hideElement(loadingDiv);
       }
     } catch (err) {
-      console.error('Error prediksi:', err);
+      console.error('Error pas prediksi:', err);
       if (loadingDiv) hideElement(loadingDiv);
       if (idleDiv) showElement(idleDiv);
     }
   }
 
+  // Fungsi untuk menghentikan loop dan mematikan kamera, sekaligus bersihkan memory
   stopCameraAndClearMemory() {
-    
     this.isScanning = false;
     if (this.loopId) {
       cancelAnimationFrame(this.loopId);
       this.loopId = null;
     }
-
-    
     this.cameraService.stopCamera();
 
-    
+    // Bersihkan sisa tensor (jika ada)
     if (window.tf) {
-      
+      window.tf.tidy(() => {});
     }
 
-    
+    // Update status UI
     const statusEl = document.getElementById('status-text');
     if (statusEl) statusEl.innerText = '⏸️ Scan selesai';
-
     const dotEl = document.getElementById('status-dot');
     if (dotEl) dotEl.className = 'status-dot';
 
-    
+    // Ubah tampilan tombol scan
     const captureBtn = document.getElementById('btn-capture');
     if (captureBtn) {
       captureBtn.classList.remove('scanning');
@@ -229,20 +211,28 @@ export default class HomePage {
     }
   }
 
+  // Tombol scan diklik
   async handleScanButton() {
-    
+    // 🔥 CEK KONEKSI INTERNET
+    if (!navigator.onLine) {
+      alert('Koneksi terputus! Fitur scan membutuhkan koneksi internet.');
+      const statusEl = document.getElementById('status-text');
+      if (statusEl) statusEl.innerText = '⚠️ Offline - tidak bisa scan';
+      return;
+    }
+
+    // Jika sedang scanning, abaikan (mencegah double click)
     if (this.isScanning) return;
 
-    
+    // Reset label agar bisa generate ulang
     this.lastDetectedLabel = '';
 
-    
+    // Bersihkan memory (panggil tidy kosong)
     if (window.tf) {
-      
       window.tf.tidy(() => {});
     }
 
-    
+    // Reset UI hasil
     const resultDiv = document.getElementById('state-result');
     const idleDiv = document.getElementById('state-idle');
     const loadingDiv = document.getElementById('state-loading');
@@ -250,14 +240,27 @@ export default class HomePage {
     if (idleDiv) showElement(idleDiv);
     if (loadingDiv) hideElement(loadingDiv);
 
-    
     const factTextEl = document.getElementById('fun-fact-text');
     if (factTextEl) setElementText(factTextEl, 'Memindai...');
 
-    
-    await this.startCameraAndScan();
+    // Nyalakan kamera kembali
+    const started = await this.cameraService.startCamera(
+      'media-video',
+      'media-canvas',
+      document.getElementById('camera-select')
+    );
+    if (!started) {
+      const statusEl = document.getElementById('status-text');
+      if (statusEl) statusEl.innerText = '❌ Kamera error';
+      return;
+    }
 
-    
+    // Mulai loop prediksi lagi
+    this.isScanning = true;
+    if (this.loopId) cancelAnimationFrame(this.loopId);
+    this.loopId = requestAnimationFrame(this.predictLoop.bind(this));
+
+    // Update tombol
     const captureBtn = document.getElementById('btn-capture');
     if (captureBtn) {
       captureBtn.classList.add('scanning');
@@ -265,10 +268,9 @@ export default class HomePage {
     }
   }
 
-  
+  // Dipanggil saat halaman di-unload (optional)
   destroy() {
     this.stopCameraAndClearMemory();
-    this.cameraService.stopCamera();
   }
 }
 
