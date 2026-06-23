@@ -224,6 +224,7 @@ export default class HomePage {
         if (this.lastDetectedLabel !== detection.label) {
           this.lastDetectedLabel = detection.label;
 
+          this.stopCameraAndClearMemory;
           const factLoading = document.getElementById('fun-fact-loading');
           const factTextEl = document.getElementById('fun-fact-text');
 
@@ -240,7 +241,7 @@ export default class HomePage {
           if (factLoading) hideElement(factLoading);
 
           
-          this.stopCameraAndClearMemory();
+          //this.stopCameraAndClearMemory();
         }
 
         
